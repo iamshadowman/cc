@@ -1,0 +1,199 @@
+clear;
+close all;
+
+h=0.001;
+E=0;
+E0=0;
+dE=5e-3;
+y1=0;
+
+n = input('Enter the number of energy states including ground state\n'); 
+fprintf('Wait till we process...\n')
+
+for l=1:n
+    
+  while E>=0
+      
+    %ODE solver - RK4
+    [y2,y,x,~]=odesolver3(E,l); 
+    
+    y2 = y2; 
+    E1 = E-dE; 
+    E2 = E;
+    p=y1*y2;
+    if y1*y2<0
+      break
+    end
+    
+    E = E+dE;
+    y1 = y2;
+  end
+  
+  E0(l) = bisection3(E1, E2, l); 
+  [~, y0, x0 , b] = odesolver3(E0(l),l);
+  
+   
+  E = E0(l)+dE;
+  y1 = 0;
+  y2 = 0;
+  
+  half_psi = y0;
+  half_dist = x0;
+  
+  full_dist = [-flip(half_dist), half_dist];
+  fd=numel(full_dist); 
+  full_dist(fd/2) = []; 
+  
+  if mod(l,2) == 0
+      full_psi = [-flip(half_psi), half_psi];
+      fp=numel(full_psi); 
+      full_psi(fp/2) = [];  
+  else
+      full_psi = [flip(half_psi), half_psi];
+      fp=numel(full_psi); 
+      full_psi(fp/2) = []; 
+  end
+  nc = normalise(full_psi,h); 
+  full_psi = nc*full_psi;
+  
+  
+  dist{l} = full_dist;
+  psi{l} = full_psi;
+  
+  plot(dist{l}, psi{l})
+  %hold on
+
+  legendEntries{l} = sprintf('n=%d', l-1);
+end
+
+%plot([-flip(x0),x0],[flip(b),b])
+hold off
+
+%legendEntries{l+1} = '(1/2)kx^2';
+legend (legendEntries)
+fprintf('Processing completed.\n')
+fprintf('The energy eigen values are \n')
+disp(E0)
+
+xlabel('x')
+ylabel('Ψ(x)')
+%%ylim([-6, 6])
+xlim([-5, 5])
+title('1D harmonic oscillator')
+grid on
+
+
+
+
+function [out1, out2, out3, out4]=odesolver3(E,l)
+  E = E;
+  l = l;
+  h = 0.001;
+  %N = 6000;
+  k = 1;
+  i = 1; 
+  xc=(sqrt(2*E/k)); 
+  xcc=floor(xc); 
+  
+  if mod(l,2) == 0
+      x(1)=0;
+      y(1)=0;
+      u(1)=1;
+  elseif mod(l,2) ~= 0
+      x(1)=0;
+      y(1)=1;
+      u(1)=0;
+  end
+  
+
+  %ODE solver - Starting of RK4
+  g=@(x,y) (-E+0.5*k*x^2)*y; %du/dx=(-E+0.5x^2)y
+  f=@(x,u) u; %dy/dx=u
+
+  while i >= 1
+
+    %RK4
+    %u
+    k1=g(x(i),y(i));
+    k2=g(x(i)+h/2,y(i)+k1*h/2);
+    k3=g(x(i)+h/2,y(i)+k2*h/2);
+    k4=g(x(i)+h,y(i)+k3*h);
+    u(i+1)=u(i)+(k1 + 2*k2 + 2*k3 + k4)*h/6;
+
+    %y
+    j1=f(x(i),u(i));
+    j2=f(x(i)+h/2,u(i)+j1*h/2);
+    j3=f(x(i)+h/2,u(i)+j2*h/2);
+    j4=f(x(i)+h,u(i)+j3*h);
+    y(i+1)=y(i)+(j1 + 2*j2 + 2*j3 + j4)*h/6;
+
+
+    x(i+1) = x(i)+h;
+    
+    b(i+1) = (x(i+1))^2;
+    
+    if x(i+1) >= 5*xcc
+        break
+    end
+    
+    i = i+1; 
+  end
+  %ending of RK4
+  
+  out1 = y(((5*xcc)/h)+1);
+  out2 = y;
+  out3 = x; 
+  out4 = b;
+end
+
+
+
+
+function t = bisection3(a, b, l)
+    m = a;
+    n = b;
+    l = l;
+    tol = 0.001;
+    while abs(n - m) > tol
+        if odesolver_out1(m,l) * odesolver_out1(n,l) < 0
+            c = (m + n) / 2;
+            if odesolver_out1(n,l) * odesolver_out1(c,l) > 0
+                n = c;
+            elseif odesolver_out1(n,l) * odesolver_out1(c,l) < 0
+                m = c;
+            end
+        end
+    end
+    t = (m + n) / 2;
+end
+
+function out1 = odesolver_out1(x,l)
+    [out1,~,~,~] = odesolver3(x,l); % Assuming odesolver's first output is what you need
+end
+
+
+
+
+
+function output = normalise(full_psi,h)
+    
+    y0 = full_psi; 
+    y0 = y0.^2; 
+    n = numel(y0)
+    h = h;
+    s1 = 0; 
+    s2 = 0;
+    
+    for i = 2:2:n-1
+        s1 = s1 + y0(i); 
+    end
+    
+    for i = 3:2:n-2
+        s2 = s2 + y0(i);
+    end  
+        
+    I=(h/3)*(y0(1)+y0(n)+4*s1+2*s2)
+    
+    output = 1/sqrt(I);
+    
+end
