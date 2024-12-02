@@ -1,0 +1,62 @@
+clear;
+t(1)=0;
+x(1)=0;
+y(1)=10;
+u(1)=0.316;
+v(1)=0;
+h=0.1;
+N=100000;
+
+f1=@(t,x,y) -x/((x^2+y^2)^1.5); #du/dt=k/(m*x^2)
+#f2=@(t,u) u; #dx/dt=u
+f2=@(t,x,y) -y/((x^2+y^2)^1.5); #dv/dt=k/(m*y^2)
+#f4=@(t,v) v; #dy/dt=v
+
+for i=1:N
+  
+  #RK4
+  #u
+  k1=f1(t(i),x(i),y(i));
+  k2=f1(t(i)+h/2,x(i)+k1*h/2,y(i)+k1*h/2);
+  k3=f1(t(i)+h/2,x(i)+k2*h/2,y(i)+k2*h/2);
+  k4=f1(t(i)+h,x(i)+k3*h,y(i)+k3*h);
+  u(i+1)=u(i)+(k1 + 2*k2 + 2*k3 + k4)*h/6;
+  x(i+1)=x(i)+h*u(i);
+  #x
+  #j1=f2(t(i),u(i));
+  #j2=f2(t(i)+h/2,u(i)+j1*h/2);
+  #j3=f2(t(i)+h/2,u(i)+j2*h/2);
+  #j4=f2(t(i)+h,u(i)+j3*h);
+  #x(i+1)=x(i)+(j1 + 2*j2 + 2*j3 + j4)*h/6;
+  
+  #v
+  k11=f2(t(i),x(i),y(i));
+  k22=f2(t(i)+h/2,x(i)+k11*h/2,y(i)+k11*h/2);
+  k33=f2(t(i)+h/2,x(i)+k22*h/2,y(i)+k22*h/2);
+  k44=f2(t(i)+h,x(i)+k33*h,y(i)+k33*h);
+  v(i+1)=v(i)+(k11 + 2*k22 + 2*k33 + k44)*h/6;
+  y(i+1)=y(i)+h*v(i);
+  #y
+  #jj1=f4(t(i),v(i));
+  #jj2=f4(t(i)+h/2,v(i)+jj1*h/2);
+  #jj3=f4(t(i)+h/2,v(i)+jj2*h/2);
+  #jj4=f4(t(i)+h,v(i)+jj3*h);
+  #y(i+1)=y(i)+(jj1 + 2*jj2 + 2*jj3 + jj4)*h/6;
+  
+
+  t(i+1)=t(i)+h;
+  
+  plot(x,y)
+xlabel('x')
+ylabel('y')
+xlim([-12 12])
+ylim([-12 12])
+pause(0.001)
+endfor
+
+
+%plot(x,y)
+%xlabel('x')
+%ylabel('y')
+%xlim([-12 12])
+%ylim([-12 12])
