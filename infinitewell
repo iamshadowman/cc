@@ -1,0 +1,125 @@
+clear;
+close;
+
+x(1)=0;
+y(1)=0;
+u(1)=1;
+h=0.001;
+N=5000;
+E=0;
+E0=0;
+dE=5e-3;
+y1=0; 
+
+n = input('Enter the number of energy states including ground state\n'); 
+fprintf('Wait till we process...\n')
+
+for l=1:n
+    
+  while E>=0
+      
+    %ODE solver - RK4
+    [~,y,x]=odesolver(E); 
+    %ending of RK4
+
+    y2 = y((4/h)+1); 
+    E1 = E-dE; 
+    E2 = E; 
+    
+    if y1*y2<0
+      break
+    end
+    
+    E = E+dE;
+    y1 = y2; 
+  end
+  
+  E0(l) = bisection(E1, E2); 
+  [~, y0,~] = odesolver(E0(l));
+   
+  E = E0(l)+dE;
+  y1 = y2; 
+  
+  psi(l,:) = y0;
+  plot(x, psi(l,:))
+  hold on
+  
+  legendEntries{l} = sprintf('n=%d', l-1);
+end
+
+legend (legendEntries)
+fprintf('Processing completed.\n')
+fprintf('The energy eigen values are \n')
+disp(E0)
+
+xlabel('x')
+ylabel('Ψ(x)')
+xlim([0, 4])
+title('1D infinite potential well')
+
+
+
+
+function [out1, out2, out3]=odesolver(E)
+  E=E;
+  x(1)=0;
+  y(1)=0;
+  u(1)=1;
+  h=0.001;
+  N=5000;
+
+  %ODE solver - Starting of RK4
+  g=@(x,y) -E*y; %du/dx=-Ey
+  f=@(x,u) u; %dy/dx=u
+
+  for i=1:N
+
+    %RK4
+    %u
+    k1=g(x(i),y(i));
+    k2=g(x(i)+h/2,y(i)+k1*h/2);
+    k3=g(x(i)+h/2,y(i)+k2*h/2);
+    k4=g(x(i)+h,y(i)+k3*h);
+    u(i+1)=u(i)+(k1 + 2*k2 + 2*k3 + k4)*h/6;
+
+    %y
+    j1=f(x(i),u(i));
+    j2=f(x(i)+h/2,u(i)+j1*h/2);
+    j3=f(x(i)+h/2,u(i)+j2*h/2);
+    j4=f(x(i)+h,u(i)+j3*h);
+    y(i+1)=y(i)+(j1 + 2*j2 + 2*j3 + j4)*h/6;
+
+
+    x(i+1)=x(i)+h;
+  end
+  %ending of RK4
+  out1 = y((4/h)+1);
+  out2 = y;
+  out3 = x; 
+end
+
+
+
+
+
+function t = bisection(a, b)
+    m = a;
+    n = b;
+    tol = 0.001;
+    while abs(n - m) > tol
+        if odesolver_out1(m) * odesolver_out1(n) < 0
+            c = (m + n) / 2;
+            if odesolver_out1(n) * odesolver_out1(c) > 0
+                n = c;
+            elseif odesolver_out1(n) * odesolver_out1(c) < 0
+                m = c;
+            end
+        end
+    end
+    t = (m + n) / 2;
+end
+
+function out1 = odesolver_out1(x)
+    [out1,~,~] = odesolver(x); % Assuming odesolver's first output is what you need
+end
+
